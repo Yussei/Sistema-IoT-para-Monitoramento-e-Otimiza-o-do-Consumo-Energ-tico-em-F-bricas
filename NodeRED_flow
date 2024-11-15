@@ -1,0 +1,17 @@
+// Este código é inserido em um nó de função no Node-RED
+
+// Processa a leitura de temperatura
+if (msg.topic === "sensor/temperatura") {
+    var temperatura = parseFloat(msg.payload);
+    node.status({fill:"blue", shape:"dot", text:"Temperatura: " + temperatura + "°C"});
+    // Aqui, você pode adicionar lógica para ações baseadas na temperatura
+}
+
+// Processa a leitura de corrente
+if (msg.topic === "sensor/corrente") {
+    var corrente = parseFloat(msg.payload);
+    node.status({fill:"green", shape:"dot", text:"Corrente: " + corrente + "A"});
+    // Aqui, você pode adicionar lógica para ações baseadas na corrente
+}
+
+return msg;
