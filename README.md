@@ -10,5 +10,4 @@ Como Executar o Projeto
 2. Realize o upload do arquivo "ESP32_code" para o Arduino.
 3. Instale o Node.js na versão LTS mais recente;
 4. Instale o Node-RED;
-5. Instale os pacotes adicionais serialport e node-red-node-arduino;
-Importe o arquivo "NodeRED_flow" para a instância do Node-RED que está sendo executada em sua máquina. Antes de implementá-la, verifique se as portas COM dos nodes do Arduino estão conforme as portas utilizadas em seu computador.
+5. Importe o arquivo "NodeRED_flow" para a instância do Node-RED que está sendo executada em sua máquina. Antes de implementá-la, verifique se as portas COM dos nodes do Arduino estão conforme as portas utilizadas em seu computador.
