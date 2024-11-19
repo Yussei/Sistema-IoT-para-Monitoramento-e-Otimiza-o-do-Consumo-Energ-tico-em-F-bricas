@@ -1,17 +1,53 @@
 // Este código é inserido em um nó de função no Node-RED
 
-// Processa a leitura de temperatura
-if (msg.topic === "sensor/temperatura") {
-    var temperatura = parseFloat(msg.payload);
-    node.status({fill:"blue", shape:"dot", text:"Temperatura: " + temperatura + "°C"});
-    // Aqui, você pode adicionar lógica para ações baseadas na temperatura
-}
-
-// Processa a leitura de corrente
-if (msg.topic === "sensor/corrente") {
-    var corrente = parseFloat(msg.payload);
-    node.status({fill:"green", shape:"dot", text:"Corrente: " + corrente + "A"});
-    // Aqui, você pode adicionar lógica para ações baseadas na corrente
-}
-
-return msg;
+[{
+    "id": "c1e1a3f3a7d18f7f",
+    "type": "mqtt in",
+    "z": "node-red-flow",
+    "name": "Receber Corrente",
+    "topic": "esp32/corrente",
+    "qos": "0",
+    "datatype": "auto",
+    "broker": "8f39a0c3.d72c5",
+    "nl": false,
+    "rap": true,
+    "rh": 0,
+    "x": 150,
+    "y": 100,
+    "wires": [["3a91f3b9dcb456ae"]]
+}, {
+    "id": "3a91f3b9dcb456ae",
+    "type": "debug",
+    "z": "node-red-flow",
+    "name": "Exibir Corrente",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "true",
+    "targetType": "full",
+    "statusVal": "",
+    "statusType": "auto",
+    "x": 340,
+    "y": 100,
+    "wires": []
+}, {
+    "id": "8f39a0c3.d72c5",
+    "type": "mqtt-broker",
+    "name": "Broker Local",
+    "broker": "localhost",
+    "port": "1883",
+    "clientid": "",
+    "usetls": false,
+    "compatmode": true,
+    "keepalive": "60",
+    "cleansession": true,
+    "birthTopic": "",
+    "birthQos": "0",
+    "birthPayload": "",
+    "closeTopic": "",
+    "closePayload": "",
+    "willTopic": "",
+    "willQos": "0",
+    "willPayload": ""
+}]
