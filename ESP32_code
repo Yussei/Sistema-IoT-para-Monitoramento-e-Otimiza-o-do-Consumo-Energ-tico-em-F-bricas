@@ -1,34 +1,36 @@
 #include <WiFi.h>
 #include <PubSubClient.h>
-#include <DHT.h>
+#include "ACS712.h" // Biblioteca para o sensor ACS712
 
 // Configurações da rede Wi-Fi
-const char* ssid = "SEU_SSID";
-const char* password = "SUA_SENHA";
+const char* ssid = "SEU_SSID";     // Insira o SSID da sua rede Wi-Fi
+const char* password = "SUA_SENHA"; // Insira a senha da sua rede Wi-Fi
 
 // Configurações do broker MQTT
-const char* mqtt_server = "broker.hivemq.com";
+const char* mqtt_server = "test.mosquitto.org";
 WiFiClient espClient;
 PubSubClient client(espClient);
 
-// Configurações do sensor DHT e do sensor de corrente
-#define DHTPIN 4
-#define DHTTYPE DHT22
-DHT dht(DHTPIN, DHTTYPE);
+// Configurações do sensor ACS712
+#define ACS_PIN 8 // Pino analógico onde o ACS712 está conectado
+ACS712 sensor(ACS712_30A, ACS_PIN);
 
 void setup() {
   Serial.begin(115200);
+
+  // Conectando ao Wi-Fi
   WiFi.begin(ssid, password);
-  
   while (WiFi.status() != WL_CONNECTED) {
     delay(1000);
     Serial.println("Conectando ao WiFi...");
   }
   Serial.println("Conectado ao WiFi");
 
+  // Configurando o broker MQTT
   client.setServer(mqtt_server, 1883);
 
-  dht.begin();
+  // Inicializando o sensor ACS712
+  sensor.autoMidPoint(); // Ajusta automaticamente o ponto médio (calibração simples)
 }
 
 void loop() {
@@ -37,15 +39,16 @@ void loop() {
   }
   client.loop();
 
-  float temperatura = dht.readTemperature();
-  float corrente = analogRead(34); // Exemplo para sensor SCT-013
+  // Leitura da corrente
+  float correnteValor = sensor.getCurrentAC(50); // Frequência da rede em Hz
+  Serial.print("Corrente: ");
+  Serial.println(correnteValor);
 
-  if (!isnan(temperatura)) {
-    client.publish("sensor/temperatura", String(temperatura).c_str());
-  }
+  // Publicar a corrente no MQTT
+  char correnteStr[8];
+  dtostrf(correnteValor, 6, 2, correnteStr); // Converte float para string
+  client.publish("esp32/corrente", correnteStr);
 
-  client.publish("sensor/corrente", String(corrente).c_str());
-  
   delay(5000);
 }
 
@@ -54,6 +57,8 @@ void reconnect() {
     if (client.connect("ESP32Client")) {
       Serial.println("Conectado ao broker MQTT!");
     } else {
+      Serial.print("Falha na conexão. Estado: ");
+      Serial.println(client.state());
       delay(5000);
     }
   }
