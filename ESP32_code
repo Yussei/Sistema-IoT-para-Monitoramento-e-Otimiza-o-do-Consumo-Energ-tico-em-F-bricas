@@ -1,63 +1,92 @@
-#include <WiFi.h>
+include <WiFi.h>
 #include <PubSubClient.h>
-#include "ACS712.h" // Biblioteca para o sensor ACS712
 
-// Configurações da rede Wi-Fi
-const char* ssid = "SEU_SSID";     // Insira o SSID da sua rede Wi-Fi
-const char* password = "SUA_SENHA"; // Insira a senha da sua rede Wi-Fi
+// Configurações da rede Wi-Fi e Adafruit IO
+const char* ssid = "Wokwi-GUEST"; // Rede Wi-Fi do simulador
+const char* password = "";
+const char* mqtt_server = "io.adafruit.com"; // Servidor MQTT do Adafruit IO
+const char* mqtt_username = "Seu_Usuario_Adafruit"; // Substitua com seu nome de usuário
+const char* mqtt_password = "Sua_Chave_AIO";        // Substitua com sua AIO Key
 
-// Configurações do broker MQTT
-const char* mqtt_server = "test.mosquitto.org";
 WiFiClient espClient;
 PubSubClient client(espClient);
 
-// Configurações do sensor ACS712
-#define ACS_PIN 8 // Pino analógico onde o ACS712 está conectado
-ACS712 sensor(ACS712_30A, ACS_PIN);
+// Configuração dos pinos
+const int sensorPin = 35; // GPIO35 para leitura de corrente
+const int relayPin = 25;  // GPIO25 para simular o relé (LED)
+
+// Variáveis de controle
+unsigned long lastRelayUpdate = 0;  // Para controlar a atualização do relé
+unsigned long lastMqttUpdate = 0;   // Para controlar a publicação no Adafruit
+const int relayInterval = 3000;     // Intervalo de 3 segundos para o relé
+const int mqttInterval = 5000;      // Intervalo de 5 segundos para o Adafruit
+int relayState = LOW;               // Estado do relé (ON/OFF)
+int simulatedCurrent = 0;           // Valor simulado da corrente
 
 void setup() {
   Serial.begin(115200);
-
-  // Conectando ao Wi-Fi
+  
+  // Conectar ao Wi-Fi
   WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED) {
-    delay(1000);
+    delay(500);
     Serial.println("Conectando ao WiFi...");
   }
-  Serial.println("Conectado ao WiFi");
+  Serial.println("WiFi conectado");
 
-  // Configurando o broker MQTT
+  // Configurar o cliente MQTT
   client.setServer(mqtt_server, 1883);
 
-  // Inicializando o sensor ACS712
-  sensor.autoMidPoint(); // Ajusta automaticamente o ponto médio (calibração simples)
+  // Configurar os pinos
+  pinMode(sensorPin, INPUT);
+  pinMode(relayPin, OUTPUT);
+  digitalWrite(relayPin, relayState);
 }
 
 void loop() {
+  // Reconectar ao MQTT se necessário
   if (!client.connected()) {
-    reconnect();
+    reconnectMQTT();
   }
   client.loop();
 
-  // Leitura da corrente
-  float correnteValor = sensor.getCurrentAC(50); // Frequência da rede em Hz
-  Serial.print("Corrente: ");
-  Serial.println(correnteValor);
+  unsigned long currentMillis = millis();
 
-  // Publicar a corrente no MQTT
-  char correnteStr[8];
-  dtostrf(correnteValor, 6, 2, correnteStr); // Converte float para string
-  client.publish("esp32/corrente", correnteStr);
+  // Atualizar o estado do relé e simular leituras a cada 3 segundos
+  if (currentMillis - lastRelayUpdate >= relayInterval) {
+    lastRelayUpdate = currentMillis;
 
-  delay(5000);
+    // Alterna o estado do relé
+    relayState = !relayState;
+    digitalWrite(relayPin, relayState);
+    Serial.println(relayState ? "Relé ligado" : "Relé desligado");
+
+    // Simula uma variação nos valores do sensor de corrente
+    simulatedCurrent = random(500, 1500); // Valores entre 500 e 1500 (ajuste conforme necessário)
+    Serial.println("Simulated Current: " + String(simulatedCurrent) + " mA");
+  }
+
+  // Enviar dados ao Adafruit IO a cada 5 segundos
+  if (currentMillis - lastMqttUpdate >= mqttInterval) {
+    lastMqttUpdate = currentMillis;
+
+    // Publicar o estado do relé
+    client.publish(String(mqtt_username + String("/feeds/relay")).c_str(), relayState ? "ON" : "OFF");
+
+    // Publicar o valor simulado do sensor de corrente
+    client.publish(String(mqtt_username + String("/feeds/sensor-de-corrente")).c_str(), String(simulatedCurrent).c_str());
+
+    Serial.println("Dados enviados ao Adafruit IO");
+  }
 }
 
-void reconnect() {
+void reconnectMQTT() {
   while (!client.connected()) {
-    if (client.connect("ESP32Client")) {
-      Serial.println("Conectado ao broker MQTT!");
+    Serial.println("Tentando conectar ao MQTT...");
+    if (client.connect("ESP32Client", mqtt_username, mqtt_password)) {
+      Serial.println("Conectado ao Adafruit IO!");
     } else {
-      Serial.print("Falha na conexão. Estado: ");
+      Serial.print("Falha ao conectar, rc=");
       Serial.println(client.state());
       delay(5000);
     }
